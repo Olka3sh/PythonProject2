@@ -225,6 +225,7 @@ class PackageAnalyzer:
             for dep in self.dependencies:
                 print(f"└── {dep}")
 
+
 def main():
     analyzer = PackageAnalyzer()
     try:
