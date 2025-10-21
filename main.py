@@ -27,7 +27,7 @@ class PackageAnalyzer:
         ]
 
     def load_config(self, config_path: str) -> None:
-        #ЭТАП 1: Загрузка конфигурации
+        # ЭТАП 1: Загрузка конфигурации
         if not os.path.exists(config_path):
             raise ConfigError(f"Конфигурационный файл не найден: {config_path}")
         with open(config_path, 'r', encoding='utf-8') as file:
@@ -42,7 +42,7 @@ class PackageAnalyzer:
             raise ConfigError(f"Отсутствуют параметры: {', '.join(missing_params)}")
 
     def display_config(self) -> None:
-        #ЭТАП 1: Вывод конфигурации
+        # ЭТАП 1: Вывод конфигурации
         print("Конфигурация анализатора пакетов")
         print("=" * 40)
         for param in self.required_params:
@@ -50,7 +50,7 @@ class PackageAnalyzer:
         print("=" * 40)
 
     def get_npm_package_info(self, package_name: str, version: str) -> dict:
-        #ЭТАП 2: Получение информации о пакете из npm
+        # ЭТАП 2: Получение информации о пакете из npm
         try:
             url = f"https://registry.npmjs.org/{package_name}"
             with urllib.request.urlopen(url) as response:
@@ -68,7 +68,7 @@ class PackageAnalyzer:
             raise DependencyError(f"Ошибка получения пакета: {e}")
 
     def extract_dependencies(self) -> None:
-        #ЭТАП 2: Извлечение прямых зависимостей
+        # ЭТАП 2: Извлечение прямых зависимостей
         package_info = self.get_npm_package_info(
             self.config['package_name'],
             self.config['package_version']
@@ -79,14 +79,14 @@ class PackageAnalyzer:
             self.dependencies = ["Прямые зависимости отсутствуют"]
 
     def display_dependencies(self) -> None:
-        #ЭТАП 2: Вывод прямых зависимостей
+        # ЭТАП 2: Вывод прямых зависимостей
         print(f"\nПрямые зависимости {self.config['package_name']}@{self.config['package_version']}:")
         print("-" * 40)
         for dep in self.dependencies:
             print(f"  {dep}")
 
     def build_dependency_graph(self) -> None:
-        #ЭТАП 3: Построение графа зависимостей
+        # ЭТАП 3: Построение графа зависимостей
         test_mode = self.config['test_repo_mode'].lower() in ('true', 'yes', '1')
         if test_mode:
             self._build_graph_from_file()
@@ -94,7 +94,7 @@ class PackageAnalyzer:
             self._build_graph_from_npm()
 
     def _build_graph_from_file(self) -> None:
-        #ЭТАП 3: Режим тестирования - чтение из файла
+        # ЭТАП 3: Режим тестирования - чтение из файла
         repo_path = self.config['repository_url']
         if not os.path.exists(repo_path):
             raise DependencyError(f"Тестовый файл не найден: {repo_path}")
@@ -106,7 +106,7 @@ class PackageAnalyzer:
             raise DependencyError(f"Ошибка чтения тестового файла: {e}")
 
     def _build_graph_from_npm(self) -> None:
-        #ЭТАП 3: Режим npm - построение графа DFS без рекурсии
+        # ЭТАП 3: Режим npm - построение графа DFS без рекурсии
         start_package = self.config['package_name']
         start_version = self.config['package_version']
         stack = deque([(start_package, start_version)])
@@ -136,7 +136,7 @@ class PackageAnalyzer:
                 self.dependency_graph[package_key] = []
 
     def detect_cycles(self) -> list:
-        #ЭТАП 3: Обнаружение циклов DFS без рекурсии
+        # ЭТАП 3: Обнаружение циклов DFS без рекурсии
         cycles = []
         for start_node in self.dependency_graph:
             stack = [(start_node, [start_node])]
@@ -157,11 +157,48 @@ class PackageAnalyzer:
         return cycles
 
     def display_dependency_graph(self) -> None:
-        #ЭТАП 3: Вывод полного графа
+        # ЭТАП 3: Вывод полного графа
         print(f"\nПолный граф зависимостей:")
         print("=" * 50)
         for package, dependencies in self.dependency_graph.items():
             print(f"{package}: {', '.join(dependencies)}")
+
+    # ЭТАП 4: Поиск обратных зависимостей
+    def find_reverse_dependencies(self, target_package: str) -> list:
+        reverse_deps = []
+        for package in self.dependency_graph:
+            stack = deque([package])
+            visited = set()
+            while stack:
+                current_package = stack.pop()
+                if current_package in visited:
+                    continue
+                visited.add(current_package)
+                for dependency in self.dependency_graph.get(current_package, []):
+                    if dependency == target_package:
+                        if current_package not in reverse_deps:
+                            reverse_deps.append(current_package)
+                    if dependency not in visited:
+                        stack.append(dependency)
+
+        return reverse_deps
+
+    def display_reverse_dependencies(self) -> None:
+        #ЭТАП 4: Вывод обратных зависимостей
+        target_package = self.config['package_name']
+        if self.config['test_repo_mode'].lower() in ('true', 'yes', '1'):
+            target_key = target_package
+        else:
+            target_key = f"{target_package}@{self.config['package_version']}"
+        print(f"\nПоиск обратных зависимостей для: {target_key}")
+        print("-" * 50)
+        reverse_deps = self.find_reverse_dependencies(target_key)
+        if reverse_deps:
+            print(f"Пакеты, зависящие от {target_key}:")
+            for i, dep in enumerate(reverse_deps, 1):
+                print(f"  {i}. {dep}")
+        else:
+            print(f"Нет пакетов, зависящих от {target_key}")
 
     def run_analysis(self) -> None:
         print(f"\nАнализ пакета: {self.config['package_name']}@{self.config['package_version']}")
@@ -179,6 +216,8 @@ class PackageAnalyzer:
                 print(f"Цикл {i}: {' → '.join(cycle)}")
         else:
             print("\nЦиклические зависимости не обнаружены")
+        # ЭТАП 4: Обратные зависимости
+        self.display_reverse_dependencies()
         # ЭТАП 1: ASCII-дерево если включено
         if self.config.get('ascii_tree_mode', '').lower() in ('true', 'yes', '1'):
             print(f"\nASCII-дерево:")
@@ -194,7 +233,7 @@ def main():
             config_path = sys.argv[1]
         analyzer.load_config(config_path)
         analyzer.display_config()  # Этап 1
-        analyzer.run_analysis()  # Этапы 2 и 3
+        analyzer.run_analysis()  # Этапы 2, 3 и 4
     except (ConfigError, DependencyError) as e:
         print(f"Ошибка: {e}", file=sys.stderr)
         sys.exit(1)
