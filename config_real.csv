@@ -1,0 +1,7 @@
+parameter,value
+package_name,react
+repository_url,https://registry.npmjs.org
+test_repo_mode,false
+package_version,18.2.0
+output_filename,react_dependencies
+ascii_tree_mode,true

@@ -1,0 +1,7 @@
+parameter,value
+package_name,A
+repository_url,test_graph_cycle.json
+test_repo_mode,true
+package_version,1.0.0
+output_filename,test_graph_cycle
+ascii_tree_mode,true
