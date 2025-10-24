@@ -1,0 +1,7 @@
+parameter,value
+package_name,A
+repository_url,test_graph3.json
+test_repo_mode,true
+package_version,1.0.0
+output_filename,test_dependencies
+ascii_tree_mode,true

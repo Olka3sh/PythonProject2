@@ -1,7 +1,0 @@
-parameter,value
-package_name,A
-repository_url,test_graph1.json
-test_repo_mode,true
-package_version,1.0.0
-output_filename,test1_graph.png
-ascii_tree_mode,false
